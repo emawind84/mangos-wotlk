@@ -1013,13 +1013,13 @@ struct BGData
 struct TradeStatusInfo
 {
     TradeStatusInfo() : Status(TRADE_STATUS_BUSY), TraderGuid(), Result(EQUIP_ERR_OK),
-        IsTargetResult(false), ItemLimitCategoryId(0), Slot(0) { }
+        IsTargetResult(false), ItemLimitedByLimitCategory(0), Slot(0) { }
 
     TradeStatus Status;
     ObjectGuid TraderGuid;
     InventoryResult Result;
     bool IsTargetResult;
-    uint32 ItemLimitCategoryId;
+    uint32 ItemLimitedByLimitCategory;
     uint8 Slot;
 };
 
@@ -1304,8 +1304,8 @@ class Player : public Unit
         bool CanNoReagentCast(SpellEntry const* spellInfo) const;
         bool HasItemOrGemWithIdEquipped(uint32 item, uint32 count, uint8 except_slot = NULL_SLOT) const;
         bool HasItemOrGemWithLimitCategoryEquipped(uint32 limitCategory, uint32 count, uint8 except_slot = NULL_SLOT) const;
-        InventoryResult CanTakeMoreSimilarItems(Item* pItem, uint32* itemLimitCategory = nullptr) const { return _CanTakeMoreSimilarItems(pItem->GetEntry(), pItem->GetCount(), pItem, itemLimitCategory); }
-        InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count, uint32* itemLimitCategory = nullptr) const { return _CanTakeMoreSimilarItems(entry, count, nullptr, itemLimitCategory); }
+        InventoryResult CanTakeMoreSimilarItems(Item* pItem, uint32* itemLimitedByLimitCategory = nullptr) const { return _CanTakeMoreSimilarItems(pItem->GetEntry(), pItem->GetCount(), pItem, nullptr, itemLimitedByLimitCategory); }
+        InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count, uint32* itemLimitedByLimitCategory = nullptr) const { return _CanTakeMoreSimilarItems(entry, count, nullptr, itemLimitedByLimitCategory); }
         InventoryResult CanStoreNewItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, uint32 item, uint32 count, uint32* no_space_count = nullptr) const
         {
             return _CanStoreItem(bag, slot, dest, item, count, nullptr, false, no_space_count);
@@ -1317,7 +1317,7 @@ class Player : public Unit
             uint32 count = pItem->GetCount();
             return _CanStoreItem(bag, slot, dest, pItem->GetEntry(), count, pItem, swap, nullptr);
         }
-        InventoryResult CanStoreItems(Item** pItems, int count, uint32* itemLimitCategory) const;
+        InventoryResult CanStoreItems(Item** pItems, int count, uint32* itemLimitedByLimitCategory) const;
         InventoryResult CanEquipNewItem(uint8 slot, uint16& dest, uint32 item, bool swap) const;
         InventoryResult CanEquipItem(uint8 slot, uint16& dest, Item* pItem, bool swap, bool direct_action = true) const;
 
@@ -1343,7 +1343,7 @@ class Player : public Unit
 
         Item* ConvertItem(Item* item, uint32 newItemId);
 
-        InventoryResult _CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count = nullptr, uint32* itemLimitCategory = nullptr) const;
+        InventoryResult _CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count = nullptr, uint32* itemLimitedByLimitCategory = nullptr) const;
         InventoryResult _CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, uint32 entry, uint32 count, Item* pItem = nullptr, bool swap = false, uint32* no_space_count = nullptr) const;
 
         void ApplyEquipCooldown(Item* pItem);

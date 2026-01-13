@@ -9967,7 +9967,7 @@ bool Player::HasItemOrGemWithLimitCategoryEquipped(uint32 limitCategory, uint32 
     return false;
 }
 
-InventoryResult Player::_CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count, uint32* itemLimitCategory /*= NULL*/) const
+InventoryResult Player::_CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count, uint32* itemLimitedByLimitCategory /*= NULL*/) const
 {
     ItemPrototype const* pProto = ObjectMgr::GetItemPrototype(entry);
     if (!pProto)
@@ -10009,8 +10009,8 @@ InventoryResult Player::_CanTakeMoreSimilarItems(uint32 entry, uint32 count, Ite
             {
                 if (no_space_count)
                     *no_space_count = count + curcount - limitEntry->maxCount;
-                if (itemLimitCategory)
-                    *itemLimitCategory = pProto->ItemLimitCategory;
+                if (itemLimitedByLimitCategory)
+                    *itemLimitedByLimitCategory = pProto->ItemId;
                 return EQUIP_ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
             }
         }
@@ -10668,7 +10668,7 @@ InventoryResult Player::_CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& de
 }
 
 //////////////////////////////////////////////////////////////////////////
-InventoryResult Player::CanStoreItems(Item** pItems, int count, uint32* itemLimitCategory) const
+InventoryResult Player::CanStoreItems(Item** pItems, int count, uint32* itemLimitedByLimitCategory) const
 {
     Item*    pItem2;
 
@@ -10755,7 +10755,7 @@ InventoryResult Player::CanStoreItems(Item** pItems, int count, uint32* itemLimi
         ItemPrototype const* pBagProto;
 
         // item is 'one item only'
-        InventoryResult res = CanTakeMoreSimilarItems(pItem, itemLimitCategory);
+        InventoryResult res = CanTakeMoreSimilarItems(pItem, itemLimitedByLimitCategory);
         if (res != EQUIP_ERR_OK)
             return res;
 
