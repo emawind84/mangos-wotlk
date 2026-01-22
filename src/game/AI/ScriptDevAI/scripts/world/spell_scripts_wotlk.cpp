@@ -16,6 +16,7 @@
 
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "Globals/ObjectMgr.h"
+#include "MotionGenerators/TargetedMovementGenerator.h" 
 
 struct Replenishment : public SpellScript
 {
@@ -164,6 +165,123 @@ struct AutoBreakProc : public AuraScript
     }
 };
 
+
+enum
+{
+    // quest 25229
+    SPELL_MOTIVATE_73943                      = 73943, // motivate-a-tron summon
+    SPELL_MOTIVATE_73952                      = 73952, // 20 yards (Short) Apply Aura: Change Model (-1)
+    SPELL_MOTIVATE_74035                      = 74035, // motivate-a-tron dummy spell
+    SPELL_MOTIVATE_74080                      = 74080, // motivate-a-tron summon, kill credit
+    SPELL_MOTIVATE_73953                      = 73953, // 20 yards (Short) - DUMMY
+    SPELL_MOTIVATE_75078                      = 75078, // 20 yards (Short) - DUMMY
+    SPELL_MOTIVATE_75086                      = 75086, // TROLL QUEST - summon, kill credit
+    SPELL_MOTIVATE_75088                      = 75088, // TROLL QUEST - summon, kill credit
+    SPELL_MOTIVATE_74046                      = 74046, // change model rabbit (aura)
+    //SPELL_MOTIVATE_74071                      = 74071, // Apply Aura - Pet: Dummy
+    //SPELL_MOTIVATE_74062                      = 74062, // unlimited range
+    SPELL_MOTIVATED                           = 74034, // motivated spell (SPELL_EFFECT_APPLY_AURA))
+
+    NPC_MOTIVATED_CITIZEN                     = 39466, // second required creature_template ID
+    NPC_GNOME_CITIZEN                         = 39623, // first required creature_template ID
+    NPC_GNOME_MOTIVATED                       = 39624, // not used
+};
+
+// 74035 - Motivate
+struct Motivate : public SpellScript
+{
+    SpellCastResult OnCheckCast(Spell* spell, bool /*strict*/) const override
+    {
+        Unit* target = spell->m_targets.getUnitTarget();
+        if (!target || target->GetEntry() != NPC_GNOME_CITIZEN)
+            return SPELL_FAILED_BAD_TARGETS;
+        return SPELL_CAST_OK;
+    }
+
+    void OnEffectExecute(Spell* spell, SpellEffectIndex /*effIdx*/) const override
+    {
+        Unit* caster = spell->GetCaster();
+        Unit* target = spell->GetUnitTarget();
+        if (!caster->IsPlayer())
+            return;
+
+        if (roll_chance_i(10))
+        {
+            // transform into rabbit
+            caster->CastSpell(target, SPELL_MOTIVATE_74046, TRIGGERED_NONE);
+            return;
+        }
+        static_cast<Creature*>(target)->UpdateEntry(NPC_MOTIVATED_CITIZEN);
+        target->SetDisplayId(NPC_GNOME_CITIZEN);
+        target->CastSpell(nullptr, SPELL_MOTIVATED, TRIGGERED_NONE);
+        target->GetMotionMaster()->MoveFollow(caster, frand(0.5f, 3.0f), frand(M_PI_F * 0.8f, M_PI_F * 1.2f));
+
+        static_cast<Player*>(caster)->KilledMonsterCredit(NPC_GNOME_CITIZEN);
+    }
+};
+
+// 74034 - Motivated
+struct Motivated : public AuraScript
+{
+    void OnApply(Aura* aura, bool apply) const override
+    {
+        Unit* caster = aura->GetCaster();
+        Unit* target = aura->GetTarget();
+        Creature* gnome = static_cast<Creature*>(caster);
+        if (apply)
+        {
+            aura->ForcePeriodicity(1 * IN_MILLISECONDS); // tick every second
+            // cast dummy spell to trigger text
+            caster->CastSpell(nullptr, SPELL_MOTIVATE_73953, TRIGGERED_NONE);
+        }
+        else
+        {
+            caster->GetMotionMaster()->MoveIdle();
+            //caster->StopMoving();
+            gnome->SetRespawnDelay(1s, true);
+            gnome->ForcedDespawn(5000);
+        }
+    }
+
+    void OnPeriodicTickEnd(Aura* aura) const override
+    {
+        Unit* caster = aura->GetCaster();
+        Creature* gnome = static_cast<Creature*>(caster);
+        
+        MotionMaster* creatureMotion = caster->GetMotionMaster();
+        FollowMovementGenerator const* mgen = static_cast<FollowMovementGenerator const*>(creatureMotion->top());
+        Player* pPlayer = nullptr;
+        if (mgen->GetCurrentTarget() && mgen->GetCurrentTarget()->GetTypeId() == TYPEID_PLAYER)
+        {
+            pPlayer = static_cast<Player*>(mgen->GetCurrentTarget());
+        }
+
+        if (!mgen->GetCurrentTarget() || (pPlayer && pPlayer->GetQuestStatus(25229) == QUEST_STATUS_NONE))
+        {
+            gnome->RemoveAura(aura);
+            gnome->SetRespawnDelay(1s, true);
+            gnome->ForcedDespawn(2000);
+            return;
+        }
+
+        CreatureList captainTreadInRange;
+        GetCreatureListWithEntryInGrid(captainTreadInRange, caster, 39675, 5.0f);
+        for (const auto& tread : captainTreadInRange)
+        {
+            static_cast<Player*>(pPlayer)->KilledMonsterCredit(NPC_MOTIVATED_CITIZEN);
+            // cast dummy spell to trigger text
+            caster->CastSpell(nullptr, SPELL_MOTIVATE_75078, TRIGGERED_NONE);
+
+            caster->GetMotionMaster()->MoveIdle();
+            caster->StopMoving();
+            gnome->RemoveAura(aura);
+            gnome->SetRespawnDelay(1s, true);
+            gnome->ForcedDespawn(2000);
+        }
+        
+    }
+};
+
 void AddSC_spell_scripts_wotlk()
 {
     RegisterSpellScript<Replenishment>("spell_replenishment");
@@ -172,4 +290,6 @@ void AddSC_spell_scripts_wotlk()
     RegisterSpellScript<StoicismAbsorb>("spell_stoicism");
     RegisterSpellScript<BloodReserveEnchant>("spell_blood_reserve_enchant");
     RegisterSpellScript<AutoBreakProc>("spell_auto_break_proc");
+    RegisterSpellScript<Motivate>("spell_motivate");
+    RegisterSpellScript<Motivated>("spell_motivated");
 }
