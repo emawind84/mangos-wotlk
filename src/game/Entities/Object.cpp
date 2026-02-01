@@ -2970,6 +2970,9 @@ bool WorldObject::GetExpireTime(SpellEntry const& spellEntry, TimePoint& expireT
 
 bool WorldObject::IsSpellReady(SpellEntry const& spellEntry, ItemPrototype const* itemProto /*= nullptr*/) const
 {
+    if (!this)
+        return false;
+
     uint32 spellCategory = spellEntry.Category;
 
     TimePoint now;
