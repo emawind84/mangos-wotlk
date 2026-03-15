@@ -133,6 +133,7 @@ jobs:
           files: all_snapshots
 
   notify-success:
+    if: false
     name: Send Notification to Discord on Success
     runs-on: ubuntu-20.04
     permissions:
