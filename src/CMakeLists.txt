@@ -36,6 +36,16 @@ if(BUILD_PLAYERBOTS)
   if (NOT playerbots_POPULATED)
     FetchContent_Populate(PlayerBots)
     message(STATUS "Playerbots module source dir: ${playerbots_SOURCE_DIR}")
+
+    # Add this block
+    if (EXISTS "${playerbots_SOURCE_DIR}/.git")
+      execute_process(
+        COMMAND git -C "${playerbots_SOURCE_DIR}" describe --tags --always
+        OUTPUT_VARIABLE PLAYERBOTS_GIT_DESCRIBE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      message(STATUS "PlayerBots version: ${PLAYERBOTS_GIT_DESCRIBE}")
+    endif()
   else()
     message(STATUS "Playerbots module already populated: ${playerbots_POPULATED}")
   endif()
